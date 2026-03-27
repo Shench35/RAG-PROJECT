@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ORBITAL — Personnel Registration</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #050810;
+      --surface:   #0a0f1e;
+      --panel:     #0d1526;
+      --border:    #1a2a4a;
+      --accent:    #00d4ff;
+      --accent2:   #ff4500;
+      --green:     #00ff88;
+      --muted:     #3a5070;
+      --text:      #c8dff0;
+      --text-dim:  #5a7a9a;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-head: 'Orbitron', sans-serif;
+      --font-body: 'Exo 2', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    canvas#stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-image:
+        linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .rocket-bg {
+      position: fixed;
+      right: -60px;
+      bottom: -40px;
+      width: 420px;
+      opacity: .04;
+      z-index: 1;
+      pointer-events: none;
+      animation: rocketFloat 8s ease-in-out infinite;
+    }
+    @keyframes rocketFloat {
+      0%,100% { transform: translateY(0) rotate(-5deg); }
+      50%      { transform: translateY(-20px) rotate(-5deg); }
+    }
+
+    .scanline {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: .25;
+      z-index: 2;
+      animation: scan 6s linear infinite;
+    }
+    @keyframes scan {
+      0%   { top: 0; }
+      100% { top: 100vh; }
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      gap: 0;
+      width: min(920px, 95vw);
+      animation: fadeUp .8s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* LEFT PANEL */
+    .left-panel {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-right: none;
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+    }
+
+    .mission-badge { display: flex; flex-direction: column; gap: 4px; }
+    .mission-badge .label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .mission-badge .mission-id {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+    .mission-badge .sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .status-list { display: flex; flex-direction: column; gap: 12px; }
+    .status-item { display: flex; flex-direction: column; gap: 2px; }
+    .status-item .s-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+    .status-item .s-value {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--green);
+    }
+    .status-item .s-value.warn   { color: var(--accent); }
+    .status-item .s-value.danger { color: var(--accent2); }
+
+    .clearance-box {
+      margin-top: auto;
+      border: 1px solid var(--border);
+      padding: 10px;
+      background: rgba(0,212,255,.04);
+    }
+    .clearance-box .cl-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+    .clearance-box .cl-level {
+      font-family: var(--font-head);
+      font-size: 13px;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    /* MAIN PANEL */
+    .main-panel {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px 40px 40px;
+      clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+      position: relative;
+    }
+
+    .main-panel::before, .main-panel::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+    }
+    .main-panel::before {
+      top: 6px; right: 6px;
+      border-top: 1px solid var(--accent);
+      border-right: 1px solid var(--accent);
+    }
+    .main-panel::after {
+      bottom: 6px; left: 6px;
+      border-bottom: 1px solid var(--accent);
+      border-left: 1px solid var(--accent);
+    }
+
+    .panel-header { margin-bottom: 32px; }
+    .panel-header .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .panel-header h1 {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .panel-header p {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 6px;
+      font-family: var(--font-mono);
+    }
+
+    /* FORM */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 24px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .input-wrap { position: relative; }
+    .input-wrap .icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 13px;
+      pointer-events: none;
+      transition: color .2s;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 10px 12px 10px 36px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select { padding-right: 32px; }
+    input::placeholder { color: var(--muted); }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), inset 0 0 12px rgba(0,212,255,.05);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 12px;
+      top: 50%; transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 10px;
+      pointer-events: none;
+    }
+
+    .strength-bar { display: flex; gap: 4px; margin-top: 6px; }
+    .strength-bar span { flex: 1; height: 2px; background: var(--border); transition: background .3s; }
+    .strength-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-top: 3px;
+      min-height: 12px;
+    }
+
+    .terms-row { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; }
+    .terms-row input[type=checkbox] {
+      width: 14px; height: 14px;
+      flex-shrink: 0;
+      padding: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+      margin-top: 1px;
+    }
+    .terms-row label {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: .5px;
+      text-transform: none;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .terms-row label a { color: var(--accent); text-decoration: none; }
+
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 28px;
+    }
+
+    .btn-launch {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      padding: 14px 24px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      transition: color .3s;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    }
+    .btn-launch::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: translateX(-101%);
+      transition: transform .35s ease;
+      z-index: 0;
+    }
+    .btn-launch:hover::before { transform: translateX(0); }
+    .btn-launch:hover { color: var(--bg); }
+    .btn-launch span { position: relative; z-index: 1; }
+    .btn-launch:disabled { opacity: .4; cursor: not-allowed; }
+
+    .login-link {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .login-link a { color: var(--accent); text-decoration: none; }
+
+    .toast {
+      position: fixed;
+      bottom: 32px; right: 32px;
+      padding: 14px 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      border-left: 3px solid var(--green);
+      background: var(--panel);
+      color: var(--green);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .3s, transform .3s;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .toast.error { border-color: var(--accent2); color: var(--accent2); }
+    .toast.show  { opacity: 1; transform: translateY(0); }
+
+    @keyframes dots {
+      0%,100% { content: ' ·'; }
+      33%      { content: ' ··'; }
+      66%      { content: ' ···'; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="grid-overlay"></div>
+<div class="scanline"></div>
+
+<svg class="rocket-bg" viewBox="0 0 200 400" fill="white" xmlns="http://www.w3.org/2000/svg">
+  <path d="M100 0 C100 0 60 60 50 160 L40 200 L60 190 L60 280 L80 300 L80 360 L100 400 L120 360 L120 300 L140 280 L140 190 L160 200 L150 160 C140 60 100 0 100 0Z"/>
+  <rect x="55" y="260" width="90" height="8" rx="2"/>
+  <ellipse cx="100" cy="120" rx="18" ry="18" fill="rgba(0,0,0,.4)"/>
+</svg>
+
+<div class="wrapper">
+  <div class="left-panel">
+    <div class="mission-badge">
+      <span class="label">Mission Control</span>
+      <span class="mission-id">ORBITAL</span>
+      <span class="sub">Personnel Registry v2.4</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="status-list">
+      <div class="status-item">
+        <span class="s-label">System Status</span>
+        <span class="s-value">● NOMINAL</span>
+      </div>
+      <div class="status-item">
+        <span class="s-label">Auth Server</span>
+        <span class="s-value">● ONLINE</span>
+      </div>
+      <div class="status-item">
+        <span class="s-label">Launch Window</span>
+        <span class="s-value warn" id="countdown">T-04:32:17</span>
+      </div>
+      <div class="status-item">
+        <span class="s-label">Crew Slots</span>
+        <span class="s-value">12 / 24</span>
+      </div>
+      <div class="status-item">
+        <span class="s-label">Encryption</span>
+        <span class="s-value">AES-256</span>
+      </div>
+    </div>
+
+    <div class="clearance-box">
+      <div class="cl-label">Default Clearance</div>
+      <div class="cl-level">LEVEL 1 — CADET</div>
+    </div>
+  </div>
+
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="eyebrow">// Personnel Registration</div>
+      <h1>CREATE ACCOUNT</h1>
+      <p>Complete all fields to obtain launch authorization.</p>
+    </div>
+
+    <form id="registerForm" novalidate>
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <div class="input-wrap">
+            <span class="icon">◈</span>
+            <input type="text" id="firstName" placeholder="e.g. Neil" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <div class="input-wrap">
+            <span class="icon">◈</span>
+            <input type="text" id="lastName" placeholder="e.g. Armstrong" required />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="icon">@</span>
+            <input type="email" id="email" placeholder="crew@orbital.space" required />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="username">Username</label>
+          <div class="input-wrap">
+            <span class="icon">⌖</span>
+            <input type="text" id="username" placeholder="e.g. eagle_one" required />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <span class="icon">⬡</span>
+            <input type="password" id="password" placeholder="Min. 8 characters" required />
+          </div>
+          <div class="strength-bar">
+            <span id="s1"></span><span id="s2"></span>
+            <span id="s3"></span><span id="s4"></span>
+          </div>
+          <div class="strength-label" id="strengthLabel"></div>
+        </div>
+
+        <div class="form-group full">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="input-wrap">
+            <span class="icon">⬡</span>
+            <input type="password" id="confirmPassword" placeholder="Re-enter password" required />
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <div class="terms-row">
+            <input type="checkbox" id="terms" required />
+            <label for="terms">
+              I acknowledge the <a href="#">Mission Safety Protocol</a> and
+              <a href="#">Data Handling Agreement</a>. Unauthorized access
+              will trigger immediate deauthorization.
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="submit-row">
+        <button class="btn-launch" id="submitBtn" type="submit">
+          <span id="btnText">INITIALIZE ACCOUNT</span>
+        </button>
+        <div class="login-link">
+          Already crew? <a href="/login.html">Sign in →</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* STARFIELD */
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  function initStars() {
+    stars = Array.from({ length: 180 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + .2,
+      o: Math.random(),
+      s: Math.random() * .005 + .002
+    }));
+  }
+  function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(st => {
+      st.o += st.s;
+      if (st.o > 1 || st.o < 0) st.s *= -1;
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,220,255,${st.o})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+  resizeCanvas(); initStars(); drawStars();
+  window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
+
+  /* COUNTDOWN */
+  let totalSeconds = 4 * 3600 + 32 * 60 + 17;
+  function updateCountdown() {
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2,'0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2,'0');
+    const s = String(totalSeconds % 60).padStart(2,'0');
+    document.getElementById('countdown').textContent = `T-${h}:${m}:${s}`;
+    if (totalSeconds > 0) totalSeconds--;
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  /* PASSWORD STRENGTH */
+  const bars   = ['s1','s2','s3','s4'].map(id => document.getElementById(id));
+  const colors = ['#ff4500','#ff8c00','#00d4ff','#00ff88'];
+  const labels = ['WEAK','FAIR','STRONG','OPTIMAL'];
+
+  document.getElementById('password').addEventListener('input', function() {
+    const v = this.value;
+    let score = 0;
+    if (v.length >= 8)           score++;
+    if (/[A-Z]/.test(v))        score++;
+    if (/[0-9]/.test(v))        score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+
+    bars.forEach((b, i) => {
+      b.style.background = i < score ? colors[score - 1] : 'var(--border)';
+    });
+    const lbl = document.getElementById('strengthLabel');
+    lbl.textContent = v.length ? `STRENGTH: ${labels[score - 1] || 'VERY WEAK'}` : '';
+    lbl.style.color = score > 0 ? colors[score - 1] : 'var(--text-dim)';
+  });
+
+  /* TOAST */
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => { t.className = 'toast'; }, 3500);
+  }
+
+  /* FORM SUBMIT */
+  document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const firstName       = document.getElementById('firstName').value.trim();
+    const lastName        = document.getElementById('lastName').value.trim();
+    const username        = document.getElementById('username').value.trim();
+    const email           = document.getElementById('email').value.trim();
+    const password        = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const terms           = document.getElementById('terms').checked;
+
+    if (!firstName || !lastName || !username || !email || !password) {
+      return showToast('[ ERROR ] All required fields must be completed.', 'error');
+    }
+    if (password !== confirmPassword) {
+      return showToast('[ ERROR ] Password mismatch. Re-enter credentials.', 'error');
+    }
+    if (!terms) {
+      return showToast('[ ERROR ] You must accept the Mission Protocol.', 'error');
+    }
+
+    const btn     = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    btn.disabled  = true;
+    btnText.textContent = 'INITIALIZING···';
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/CreateUser', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name:  lastName,
+          username,
+          email,
+          password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Registration failed.');
+      }
+
+      showToast('[ SUCCESS ] Personnel registered. Redirecting…');
+      setTimeout(() => window.location.href = '/login.html', 2000);
+
+    } catch (err) {
+      showToast(`[ ABORT ] ${err.message}`, 'error');
+      btn.disabled    = false;
+      btnText.textContent = 'INITIALIZE ACCOUNT';
+    }
+  });
+</script>
+</body>
+</html>
