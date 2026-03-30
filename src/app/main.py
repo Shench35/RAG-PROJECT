@@ -3,14 +3,14 @@ import chromadb
 import ollama
 import asyncio
 
-from src.app.get_keyword import keyword_getter
-from src.app.emb_scraper import clean_text, scrape_wikipedia
-from src.app.text_to_embed import to_embeding
-from src.app.schemas import QueryRequest
+from src.app.services.get_keyword import keyword_getter
+from src.app.services.emb_scraper import clean_text, scrape_wikipedia
+from src.app.services.text_to_embed import to_embeding
+from src.app.services.schemas import QueryRequest
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.rag_db.main import get_session
-from src.rag_db.models import User
+from src.rag_db.models import User, QueryLog
 from src.auth.dependencies import AccessTokenBearer
 from src.auth.dependencies import RoleChecker
 from sqlmodel import select
@@ -19,7 +19,7 @@ from fastapi import status
 from src.auth.services import UserService
 
 
-main_route = APIRouter()
+main_route = APIRouter(prefix="/app", tags=["App"])
 chroma = chromadb.PersistentClient(path="./db")
 collection = chroma.get_or_create_collection("docs")
 # client = ollama.Client(host="http://host.docker.internal:11434")
@@ -84,19 +84,22 @@ async def query(
         results = collection.query(query_texts=[q], n_results=1)
         context = results["documents"][0][0] if results["documents"] else ""
 
-        # answer = client.generate(
-        #     model="tinyllama",
-        #     prompt=f"Context:\n{context}\n\nQuestion: {q}\n\nAnswer clearly and concisely:"
-        # )
-        
 
         answer = await asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.generate(
-            model="tinyllama",
-        prompt=f"Context:\n{context}\n\nQuestion: {q}\n\nAnswer clearly and concisely:"
+                model="tinyllama",
+                prompt=f"Context:\n{context}\n\nQuestion: {q}\n\nAnswer clearly and concisely:"
+            )
         )
-    )
+
+        log = QueryLog(
+            user_id=user.uid,
+            query=q,
+            response=answer["response"]
+        )
+        session.add(log)
+        await session.commit()
 
         return {
             "answer": answer["response"],

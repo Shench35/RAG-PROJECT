@@ -485,6 +485,47 @@
   const token = localStorage.getItem('access_token');
   if (!token) window.location.href = 'login.html';
 
+  /* AUTO REFRESH TOKEN */
+  async function authFetch(url, options = {}) {
+    // inject current access token
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+    };
+
+    let response = await fetch(url, options);
+
+    // if 401/403, try refreshing the token
+    if (response.status === 401 || response.status === 403) {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        localStorage.clear();
+        window.location.href = 'login.html';
+        return response;
+      }
+
+      // call refresh endpoint
+      const refreshRes = await fetch('http://localhost:8000/auth/refresh', {
+        headers: { 'Authorization': `Bearer ${refreshToken}` }
+      });
+
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        localStorage.setItem('access_token', refreshData.access_token);
+
+        // retry original request with new token
+        options.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+        response = await fetch(url, options);
+      } else {
+        // refresh token also expired — force login
+        localStorage.clear();
+        window.location.href = 'login.html';
+      }
+    }
+
+    return response;
+  }
+
   /* ── TOAST ── */
   function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
@@ -495,9 +536,7 @@
   /* ── LOAD USER INFO ── */
   async function loadUser() {
     try {
-      const res = await fetch('http://localhost:8000/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await authFetch('http://localhost:8000/');
       if (res.status === 401 || res.status === 403) {
         localStorage.clear();
         window.location.href = 'login.html';
@@ -621,12 +660,9 @@
     autoResize();
 
     try {
-      const res = await fetch('http://localhost:8000/query', {
+      const res = await authFetch('http://localhost:8000/query', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ q: question })
       });
 
@@ -693,9 +729,7 @@
   /* ── LOGOUT ── */
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     try {
-      await fetch('http://localhost:8000/auth/logout', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await authFetch('http://localhost:8000/auth/logout');
     } catch (_) {}
     localStorage.clear();
     window.location.href = 'login.html';

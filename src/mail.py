@@ -1,5 +1,5 @@
 from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
-from  src.app.config import Config
+from src.app.services.config import Config
 from pathlib import Path
 from typing import List
 

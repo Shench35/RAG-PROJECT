@@ -51,3 +51,21 @@ class User(SQLModel, table=True):
     def verify_password(self, password: str) -> bool:
         return verify_password(password, self.password_hash)
 
+
+class QueryLog(SQLModel, table=True):
+    
+    __tablename__ = "query_logs"
+    
+    id: uuid.UUID = Field(
+        sa_column=Column(GUID, nullable=False, primary_key=True, default=uuid.uuid4)
+    )
+    user_id: uuid.UUID = Field(
+        sa_column=Column(GUID, nullable=False)
+    )
+    query: str = Field(sa_column=Column(mysql.TEXT, nullable=False))
+    response: str = Field(sa_column=Column(mysql.LONGTEXT, nullable=True))
+    timestamp: datetime = Field(sa_column=Column(mysql.TIMESTAMP, default=func.now()))
+    
+    def __repr__(self):
+        return f"<QueryLog user_id={self.user_id} timestamp={self.timestamp}>"
+

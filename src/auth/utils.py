@@ -5,9 +5,7 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 
-from src.app.config import Config
-
-from src.app.config import Config
+from src.app.services.config import Config
 
 password_context = CryptContext(schemes=["argon2"])
 
