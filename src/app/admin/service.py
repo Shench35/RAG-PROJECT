@@ -32,7 +32,7 @@ class AdminService:
         return {"message": "User deleted successfully"}
     
     async def change_user_role(self, uid: str, new_role: str, session: AsyncSession):
-        statement = select(User).where(User.id == uid)
+        statement = select(User).where(User.uid == uid)
         result = await session.exec(statement)
         user = result.first()
         if not user:

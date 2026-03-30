@@ -9,7 +9,7 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin"])
 service = AdminService()
 
 # View all users
-@admin_router.get("/admin-get-all-user ")
+@admin_router.get("/admin-get-all-user")
 async def admin_get_all_user(session: AsyncSession = Depends(get_session)):
         users = await service.get_all_users(session)
         return users

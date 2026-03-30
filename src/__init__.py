@@ -5,6 +5,7 @@ from src.app.main import main_route
 from src.auth.routes import auth_router
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from src.app.admin.admin import admin_router
 
 
 app = FastAPI(
@@ -36,3 +37,4 @@ app.add_middleware(
 
 app.include_router(main_route) 
 app.include_router(auth_router) 
+app.include_router(admin_router)
