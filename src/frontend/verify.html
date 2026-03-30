@@ -415,7 +415,7 @@
   function clearError() { document.getElementById('errorMsg').textContent = ''; }
 
   /* COUNTDOWN — 10 minutes */
-  let secondsLeft = 600;
+  let secondsLeft = 120;
   let timerInterval = setInterval(() => {
     secondsLeft--;
     const m = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
@@ -483,6 +483,68 @@
       document.getElementById('errorMsg').textContent = `[ ERROR ] ${err.message || 'Could not reach auth server.'}`;
       btn.disabled = false;
       btnText.textContent = 'VERIFY IDENTITY';
+    }
+  });
+
+  /* RESEND OTP */
+  document.getElementById('resendBtn').addEventListener('click', async () => {
+    const email = document.getElementById('emailInput').value.trim();
+
+    if (!email) {
+      document.getElementById('errorMsg').textContent = '[ ERROR ] Email address is required to resend.';
+      return;
+    }
+
+    const btn = document.getElementById('resendBtn');
+    btn.disabled = true;
+    btn.textContent = 'SENDING···';
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        document.getElementById('errorMsg').textContent = `[ ERROR ] ${data.detail}`;
+        btn.disabled = false;
+        btn.textContent = 'RESEND CODE';
+        return;
+      }
+
+      // reset timer
+      secondsLeft = 120;
+      document.getElementById('timerDisplay').classList.remove('expiring');
+      document.getElementById('timerCount').textContent = '02:00';
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('btnText').textContent = 'VERIFY IDENTITY';
+      document.getElementById('errorMsg').textContent = '';
+
+      // clear boxes
+      boxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
+      boxes[0].focus();
+
+      showToast('[ OK ] New code sent. Check your email.');
+
+      // disable resend for 60 seconds
+      let cooldown = 60;
+      const cooldownInterval = setInterval(() => {
+        cooldown--;
+        btn.textContent = `RESEND (${cooldown}s)`;
+        if (cooldown <= 0) {
+          clearInterval(cooldownInterval);
+          btn.textContent = 'RESEND CODE';
+          btn.disabled = false;
+        }
+      }, 1000);
+
+    } catch (err) {
+      document.getElementById('errorMsg').textContent = '[ ERROR ] Could not reach auth server.';
+      btn.disabled = false;
+      btn.textContent = 'RESEND CODE';
     }
   });
 

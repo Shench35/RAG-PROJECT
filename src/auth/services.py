@@ -1,3 +1,5 @@
+import email
+
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -31,6 +33,7 @@ class UserService:
         new_user = User(**user_data_dict)
         new_user.password_hash = hash_password(user_data_dict["password"])
         new_user.role = "user"
+        new_user.is_verified = False  # Set as verified after OTP verification
 
         session.add(new_user)
 
@@ -38,12 +41,20 @@ class UserService:
 
         await session.refresh(new_user)
 
+        await session.close()
+
         return new_user
 
-    def generate_otp(self, email: str, user_data) -> str:
-        """Generate OTP and store it in-memory with 10-minute expiry"""
+    # def generate_otp(self, email: str, user_data) -> str:
+    #     """Generate OTP and store it in-memory with 10-minute expiry"""
+    #     otp = str(random.randint(100000, 999999))
+    #     expiry = datetime.now() + timedelta(minutes=10)
+    #     _otp_store[email] = (otp, expiry, user_data)
+    #     return otp
+    
+    def generate_otp(self, email: str, user_data=None) -> str:
         otp = str(random.randint(100000, 999999))
-        expiry = datetime.now() + timedelta(minutes=10)
+        expiry = datetime.now() + timedelta(minutes=2)
         _otp_store[email] = (otp, expiry, user_data)
         return otp
     
@@ -77,6 +88,6 @@ class UserService:
 
     async def verify_user(self, user: User, session: AsyncSession):
         """Mark user as verified in database"""
-        user.is_verified = 1
+        user.is_verified = True
         session.add(user)
         await session.commit()
