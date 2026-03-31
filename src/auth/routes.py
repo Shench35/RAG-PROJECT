@@ -26,7 +26,7 @@ async def create_user(user_data: CreateUserModel, session: AsyncSession = Depend
     email = user_data.email
     user_exists = await service.user_exist(email, session)
 
-    if user_exists and user_exists == '1':
+    if user_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User already exist")
     
     new_user = await service.create_account(user_data, session)
