@@ -109,21 +109,20 @@ class RAGPipeLine():
         llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         return prompt, llm
     
-    async def format_docs(self, docs):
+    def format_docs(self, docs):
         # Post-processing
         pro_docs = "\n\n".join(doc.page_content for doc in docs)
         return pro_docs
     
     async def rag_chain(self, docs: List, retriever:Any, prompt: Any, llm: Any, query:str):
-        post_procees = self.format_docs(docs)
         # Chain
         rag_chain = (
-            {"context": retriever | post_procees, "question": RunnablePassthrough()}
+            {"context": retriever | self.format_docs, "question": RunnablePassthrough()}
             | prompt
             | llm
             | StrOutputParser()
             )
-        answer = rag_chain.invoke(query)
+        answer = await rag_chain.ainvoke(query)
         return answer
 
 

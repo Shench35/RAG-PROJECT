@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 import chromadb
 import ollama
 import asyncio
+import os
 
 from src.app.services.get_keyword import keyword_getter
 from src.app.services.emb_scraper import clean_text, scrape_wikipedia
@@ -23,8 +24,8 @@ from src.app.RAG_System.pipeline import RAGPipeLine
 main_route = APIRouter(prefix="/app", tags=["App"])
 chroma = chromadb.PersistentClient(path="./db")
 collection = chroma.get_or_create_collection("docs")
-# client = ollama.Client(host="http://host.docker.internal:11434")
-client = ollama.Client(host="http://127.0.0.1:11434")
+ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+client = ollama.Client(host=ollama_host)
 access_token_bearer = AccessTokenBearer()
 role_checker = RoleChecker(["admin", "user"])
 service = UserService()
@@ -73,23 +74,28 @@ async def query(
 
     try:
        docs = await rag_pipeline.web_doc_inventory()
+       print("Done with docs")
 
        splits = await rag_pipeline.chunking(docs)
+       print("Done with spliting")
 
        retriever = await rag_pipeline.embedding_docs_and_retrival(splits)
+       print("Done with retriever")
 
        prompt, llm = await rag_pipeline.prompt_template()
+       print("Done with prompt and llm")
 
        answer = await rag_pipeline.rag_chain(docs, retriever, prompt, llm, q)
+       print(answer)
        log = QueryLog(
            user_id=user.uid,
            query=q,
-           response=answer["response"]
+           response=answer
            )
        session.add(log)
        await session.commit()
        return {
-           "answer": answer["response"]
+           "answer": answer
              }
 
     except HTTPException:
