@@ -405,18 +405,19 @@ async def get_current_user(user_details=Depends(get_current_user), _:bool = Depe
 
 
 @auth_router.get("/logout")
-async def revoke_token(token_detail:dict=Depends(AccessTokenBearer())):
-    try:
-        jti = token_detail["jti"]
-        await add_jti_to_blocklist(jti)
-        return JSONResponse(
-            content={
-                "message": "Logged out successfully"
-            },
-            status_code=status.HTTP_200_OK
-        )
-    except KeyError:
+async def revoke_token(token_detail: dict = Depends(AccessTokenBearer())):
+    jti = token_detail.get("jti")
+    
+    if not jti:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token does not contain required claims"
+            detail="Invalid token: Missing JTI"
         )
+
+    # Fire and forget or await? Awaiting ensures it's blocked before returning.
+    await add_jti_to_blocklist(jti)
+
+    return JSONResponse(
+        content={"message": "Logged out successfully"},
+        status_code=status.HTTP_200_OK
+    )
