@@ -69,5 +69,3 @@ An advanced Retrieval-Augmented Generation (RAG) system built with FastAPI, Lang
 ## 📝 License
 Distributed under the MIT License. See `LICENSE` for more information.
 =======
-Readme.md
->>>>>>> 8d5c9d84baf98f41ba980b9e4c27b02d8d7a3d6f
