@@ -6,6 +6,9 @@ from src.auth.routes import auth_router
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from src.app.admin.admin import admin_router
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 
 app = FastAPI(
@@ -34,6 +37,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve frontend static files
+app.mount("/static", StaticFiles(directory="src/frontend"), name="static")
+
+@app.get("/home")
+async def landing():
+    return FileResponse("src/frontend/index.html")
 
 app.include_router(main_route) 
 app.include_router(auth_router) 
