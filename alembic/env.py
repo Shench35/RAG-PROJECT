@@ -10,7 +10,7 @@ from sqlmodel import SQLModel
 from alembic import context
 
 from src.app.services.config import Config
-from src.rag_db.models import User, QueryLog
+from src.rag_db.models import User, QueryLog, UserQuery
 
 # Windows compatibility fix for asyncio loop
 if sys.platform == 'win32':
