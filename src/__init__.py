@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.app.main import main_route
 from src.auth.routes import auth_router
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from src.app.admin.admin import admin_router
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -33,19 +33,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve frontend static files
-app.mount("/static", StaticFiles(directory="src/frontend"), name="static")
+# 1. Health check for Render (Handles GET and HEAD)
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health_check():
+    return {"status": "healthy"}
 
-@app.get("/")
-async def landing():
-    return FileResponse("src/frontend/index.html")
-
-# Explicit admin route
+# 2. Serve specific frontend pages at the root level BEFORE static/catch-all
 @app.get("/admin.html")
 async def admin_page():
     return FileResponse("src/frontend/admin.html")
 
-# Catch-all for other HTML pages
+@app.get("/login.html")
+async def login_page():
+    return FileResponse("src/frontend/login.html")
+
+# 3. Handle Landing Page (GET and HEAD)
+@app.api_route("/", methods=["GET", "HEAD"])
+async def landing(request: Request):
+    if request.method == "HEAD":
+        return Response(status_code=200)
+    return FileResponse("src/frontend/index.html")
+
+# 4. Serve static files
+app.mount("/static", StaticFiles(directory="src/frontend"), name="static")
+
+# 5. Catch-all for other HTML pages
 @app.get("/{page_name}.html")
 async def get_page(page_name: str):
     file_path = f"src/frontend/{page_name}.html"
