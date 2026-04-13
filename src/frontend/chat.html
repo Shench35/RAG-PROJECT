@@ -188,7 +188,7 @@
     if(res.status===401||res.status===403){
       const rt = localStorage.getItem('refresh_token');
       if(!rt){localStorage.clear();window.location.href='login.html';return res;}
-      const rr = await fetch('http://localhost:8000/auth/refresh',{headers:{'Authorization':`Bearer ${rt}`}});
+      const rr = await fetch('https://lumi-conversation-ai.onrender.com/auth/refresh',{headers:{'Authorization':`Bearer ${rt}`}});
       if(rr.ok){
         const rd = await rr.json();
         localStorage.setItem('access_token',rd.access_token);
@@ -207,7 +207,7 @@
   /* LOAD USER */
   async function loadUser(){
     try{
-      const res = await authFetch('http://localhost:8000/app/');
+      const res = await authFetch('https://lumi-conversation-ai.onrender.com/app/');
       if(res.ok){
         const data = await res.json();
         document.getElementById('userName').textContent = data.first_name;
@@ -278,7 +278,7 @@
     document.getElementById('queryInput').value=''; autoResize();
 
     try{
-      const res = await authFetch('http://localhost:8000/app/query',{
+      const res = await authFetch('https://lumi-conversation-ai.onrender.com/app/query',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
@@ -323,7 +323,7 @@
 
   /* LOGOUT */
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-    try{ await authFetch('http://localhost:8000/auth/logout'); } catch(_){}
+    try{ await authFetch('https://lumi-conversation-ai.onrender.com/auth/logout'); } catch(_){}
     localStorage.clear(); window.location.href='login.html';
   });
 

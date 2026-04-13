@@ -224,7 +224,7 @@
     btn.disabled = true; btnText.textContent = 'Creating your account...';
 
     try{
-      const res = await fetch('http://localhost:8000/auth/CreateUser',{
+      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/CreateUser',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body: JSON.stringify({first_name:firstName,last_name:lastName,username,email,password})
       });

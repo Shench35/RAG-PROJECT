@@ -166,7 +166,7 @@
     btn.disabled=true; btnText.textContent='Verifying...';
 
     try{
-      const res = await fetch('http://localhost:8000/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,otp})});
+      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,otp})});
       const data = await res.json();
       if(!res.ok){ shakeBoxes(); document.getElementById('errorMsg').textContent=data.detail||'Invalid code.'; btn.disabled=false; btnText.textContent='Verify my account'; return; }
       clearInterval(timerInterval);
@@ -183,7 +183,7 @@
     if(!email){ document.getElementById('errorMsg').textContent='Please enter your email.'; return; }
     const btn=document.getElementById('resendBtn'); btn.disabled=true; btn.textContent='Sending...';
     try{
-      const res = await fetch('http://localhost:8000/auth/resend-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/resend-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
       const data = await res.json();
       if(!res.ok){ document.getElementById('errorMsg').textContent=data.detail; btn.disabled=false; btn.textContent='Resend code'; return; }
       secondsLeft=600; document.getElementById('timerDisplay').classList.remove('expiring');
