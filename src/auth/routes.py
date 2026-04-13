@@ -30,8 +30,8 @@ async def create_user(user_data: CreateUserModel, session: AsyncSession = Depend
     
     new_user = await service.create_account(user_data, session)
 
-    # Generate OTP and store user data temporarily
-    otp = service.generate_otp(email, user_data=user_data)
+    # Generate OTP and store in Redis
+    otp = await service.generate_otp(email)
 
     html = f"""
     <!DOCTYPE html>
@@ -179,7 +179,7 @@ async def verify_otp(otp_data: VerifyOTPModel, session: AsyncSession = Depends(g
     email = otp_data.email
     otp = otp_data.otp
 
-    is_valid, message = service.verify_otp_input(email, otp)
+    is_valid, message = await service.verify_otp_input(email, otp)
 
     if not is_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
@@ -205,8 +205,8 @@ async def resend_otp(email_data: EmailModel, session: AsyncSession = Depends(get
     if not user_exists:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found. Please register first.")
 
-    # Generate new OTP and store user data temporarily
-    otp = service.generate_otp(email)
+    # Generate new OTP and store in Redis
+    otp = await service.generate_otp(email)
 
     html = f"""
     <!DOCTYPE html>

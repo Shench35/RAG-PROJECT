@@ -2,7 +2,6 @@
 import os
 from dotenv import load_dotenv
 import warnings
-import bs4
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
@@ -16,7 +15,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # Suppress LangSmith connection warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
-load_dotenv('c:/Users/LENOVO/Codes/RAG_Project/.env')
+load_dotenv()
 
 # LangSmith Configuration
 langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
@@ -49,21 +48,24 @@ print("\n✅ All LangChain operations will be automatically traced!")
 print("=====================================\n")
 
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from langchain_core.documents import Document
 from typing import List, Any
 
 class RAGPipeLine():
+    def __init__(self):
+        self.embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        self.persist_directory = "./db/chroma"
+
     async def web_doc_inventory(self):
         headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
 
-        response = requests.get(
-            "https://shench35.github.io/Generative-AI-Conversation/",
-            headers=headers
-            )
+        async with httpx.AsyncClient(headers=headers, timeout=10.0) as client:
+            response = await client.get("https://shench35.github.io/Generative-AI-Conversation/")
+            
         soup = BeautifulSoup(response.text, "html.parser")
 
         # Remove noise
@@ -72,7 +74,7 @@ class RAGPipeLine():
 
         text = soup.get_text(separator="\n\n", strip=True)
 
-        # Wrap in a LangChain Document so the rest of your pipeline stays the same
+        # Wrap in a LangChain Document
         docs = [Document(page_content=text, metadata={"source": "https://shench35.github.io/Generative-AI-Conversation/"})]
         return docs
 
@@ -83,13 +85,28 @@ class RAGPipeLine():
         return splits
 
     async def embedding_docs_and_retrival(self, splits: Any):
-        # EMBEDDING THE TEXTS
-        embd = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        vectorstore = Chroma.from_documents(documents=splits,embedding=embd)
+        # Check if the collection already exists and has data
+        vectorstore = Chroma(
+            persist_directory=self.persist_directory,
+            embedding_function=self.embedding_model
+        )
+        
+        # Simple check: if collection is empty, then index. 
+        # In a real production app, you'd likely have a separate 'sync' task.
+        existing_count = len(vectorstore.get()['ids'])
+        
+        if existing_count == 0:
+            print("Vector store is empty. Indexing documents...")
+            vectorstore = Chroma.from_documents(
+                documents=splits,
+                embedding=self.embedding_model,
+                persist_directory=self.persist_directory
+            )
+        else:
+            print(f"Vector store already contains {existing_count} documents. Skipping re-indexing.")
 
-        # RETRIVAL 
+        # RETRIEVAL 
         retriever = vectorstore.as_retriever()
-
         return retriever
 
     async def prompt_template(self):
@@ -106,7 +123,7 @@ class RAGPipeLine():
                                                   Answer:"""
                                                   )
         #LANGUAGE MODEL
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
         return prompt, llm
     
     def format_docs(self, docs):

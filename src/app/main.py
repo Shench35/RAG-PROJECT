@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-import chromadb
 import ollama
 import asyncio
 import os
@@ -20,8 +19,6 @@ import uuid
 
 
 main_route = APIRouter(prefix="/app", tags=["App"])
-chroma = chromadb.PersistentClient(path="./db")
-collection = chroma.get_or_create_collection("docs")
 ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 client = ollama.Client(host=ollama_host)
 access_token_bearer = AccessTokenBearer()

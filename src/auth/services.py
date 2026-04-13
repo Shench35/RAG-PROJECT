@@ -12,8 +12,9 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends
 
-# In-memory OTP storage: email -> (otp, expiry_time)
-_otp_store = {}
+from src.rag_db.redis import save_otp, get_otp, delete_otp
+
+# In-memory OTP storage removed for production readiness
 
 class UserService:
     async def get_user_by_email(self, email: str, session: AsyncSession):
@@ -41,50 +42,27 @@ class UserService:
 
         await session.refresh(new_user)
 
-        await session.close()
-
         return new_user
 
-    # def generate_otp(self, email: str, user_data) -> str:
-    #     """Generate OTP and store it in-memory with 10-minute expiry"""
-    #     otp = str(random.randint(100000, 999999))
-    #     expiry = datetime.now() + timedelta(minutes=10)
-    #     _otp_store[email] = (otp, expiry, user_data)
-    #     return otp
-    
-    def generate_otp(self, email: str, user_data=None) -> str:
+    async def generate_otp(self, email: str) -> str:
+        """Generate OTP and store it in Redis with 10-minute expiry"""
         otp = str(random.randint(100000, 999999))
-        expiry = datetime.now() + timedelta(minutes=2)
-        _otp_store[email] = (otp, expiry, user_data)
+        await save_otp(email, otp, expiry_seconds=600)  # 10 minutes
         return otp
-    
 
-
-    def verify_otp_input(self, email: str, user_otp: str) -> tuple[bool, str]:
-        """Verify the OTP submitted by user"""
-        if email not in _otp_store:
-            return False, "No OTP found for this email."
+    async def verify_otp_input(self, email: str, user_otp: str) -> tuple[bool, str]:
+        """Verify the OTP submitted by user using Redis"""
+        stored_otp = await get_otp(email)
         
-        stored_otp, expiry, _ = _otp_store[email]
-        
-        if datetime.now() > expiry:
-            del _otp_store[email]
-            return False, "OTP has expired."
+        if stored_otp is None:
+            return False, "No OTP found or OTP has expired."
         
         if user_otp != stored_otp:
             return False, "Invalid OTP."
         
-        return True, "OTP verified successfully."
-
-    def get_stored_user_data(self, email: str):
-        """Retrieve stored user data and clean up after OTP verification"""
-        if email not in _otp_store:
-            return None
-        
-        _, _, user_data = _otp_store[email]
         # Clean up after successful verification
-        del _otp_store[email]
-        return user_data
+        await delete_otp(email)
+        return True, "OTP verified successfully."
 
     async def verify_user(self, user: User, session: AsyncSession):
         """Mark user as verified in database"""

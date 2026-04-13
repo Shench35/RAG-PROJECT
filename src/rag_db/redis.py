@@ -34,3 +34,25 @@ async def token_in_blocklist(jti: str) -> bool:
     except Exception as e:
         logger.error(f"Redis Error (check_jti): {e}")
         return False
+
+
+async def save_otp(email: str, otp: str, expiry_seconds: int = 600) -> None:
+    try:
+        await token_blocklist.set(name=f"otp:{email}", value=otp, ex=expiry_seconds)
+    except Exception as e:
+        logger.error(f"Redis Error (save_otp): {e}")
+
+
+async def get_otp(email: str) -> str | None:
+    try:
+        return await token_blocklist.get(f"otp:{email}")
+    except Exception as e:
+        logger.error(f"Redis Error (get_otp): {e}")
+        return None
+
+
+async def delete_otp(email: str) -> None:
+    try:
+        await token_blocklist.delete(f"otp:{email}")
+    except Exception as e:
+        logger.error(f"Redis Error (delete_otp): {e}")

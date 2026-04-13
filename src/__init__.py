@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from src.app.admin.admin import admin_router
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from src.app.services.config import Config
 import os
 
 
@@ -28,7 +29,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for debugging
+    allow_origins=Config.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
