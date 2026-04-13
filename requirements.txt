@@ -30,3 +30,4 @@ huggingface-hub==0.23.2
 psycopg2-binary
 asyncpg
 aiomysql
+argon2_cffi
