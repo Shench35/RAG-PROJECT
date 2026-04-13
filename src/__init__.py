@@ -18,6 +18,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Bulletproof Health Check Middleware for Render
+@app.middleware("http")
+async def render_health_check_middleware(request: Request, call_next):
+    if request.method == "HEAD":
+        return Response(status_code=200)
+    return await call_next(request)
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
@@ -33,8 +40,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. Health check for Render (Handles GET and HEAD)
-@app.api_route("/health", methods=["GET", "HEAD"])
+# 1. Health check for Render (Handles GET)
+@app.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
@@ -47,11 +54,9 @@ async def admin_page():
 async def login_page():
     return FileResponse("src/frontend/login.html")
 
-# 3. Handle Landing Page (GET and HEAD)
-@app.api_route("/", methods=["GET", "HEAD"])
-async def landing(request: Request):
-    if request.method == "HEAD":
-        return Response(status_code=200)
+# 3. Handle Landing Page (GET)
+@app.get("/")
+async def landing():
     return FileResponse("src/frontend/index.html")
 
 # 4. Serve static files

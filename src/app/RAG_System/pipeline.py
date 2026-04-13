@@ -1,34 +1,30 @@
 import os
-import httpx
 from dotenv import load_dotenv
 import warnings
-from bs4 import BeautifulSoup
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.vectorstores import Chroma
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain_ollama import ChatOllama
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.documents import Document
 from typing import List, Any
 
 # Suppress warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning)
-
 load_dotenv()
 
 class RAGPipeLine():
     def __init__(self):
-        self.embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         self.persist_directory = "./db/chroma"
+        self._embedding_model = None
+
+    @property
+    def embedding_model(self):
+        if self._embedding_model is None:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            self._embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        return self._embedding_model
 
     async def web_doc_inventory(self):
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
+        import httpx
+        from bs4 import BeautifulSoup
+        from langchain_core.documents import Document
+        
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         async with httpx.AsyncClient(headers=headers, timeout=15.0) as client:
             response = await client.get("https://shench35.github.io/Generative-AI-Conversation/")
             
@@ -40,10 +36,12 @@ class RAGPipeLine():
         return [Document(page_content=text, metadata={"source": "https://shench35.github.io/Generative-AI-Conversation/"})]
 
     async def chunking(self, docs: List):
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         return text_splitter.split_documents(docs)
 
     async def embedding_docs_and_retrival(self, splits: Any):
+        from langchain_community.vectorstores import Chroma
         vectorstore = Chroma(
             persist_directory=self.persist_directory,
             embedding_function=self.embedding_model
@@ -65,6 +63,9 @@ class RAGPipeLine():
         return vectorstore.as_retriever()
 
     async def prompt_template(self):
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.prompts import ChatPromptTemplate
+        
         prompt = ChatPromptTemplate.from_template("""You are an exciting to call with and well collected and always ready to hear people our agent for Conversation with Human. 
                                                   Use the following pieces of retrieved context to response as humanly as possible. 
                                                   If you don't hae the response, just say that you don't know. 
@@ -83,6 +84,9 @@ class RAGPipeLine():
         return "\n\n".join(doc.page_content for doc in docs)
     
     async def rag_chain(self, docs: List, retriever:Any, prompt: Any, llm: Any, query:str):
+        from langchain_core.runnables import RunnablePassthrough
+        from langchain_core.output_parsers import StrOutputParser
+        
         rag_chain = (
             {"context": retriever | self.format_docs, "question": RunnablePassthrough()}
             | prompt
