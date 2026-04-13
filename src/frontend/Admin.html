@@ -214,8 +214,16 @@
     if(res.status===401||res.status===403){
       const rt=localStorage.getItem('refresh_token');
       if(!rt){localStorage.clear();window.location.href='login.html';return res;}
-      const rr=await fetch('http://localhost:8000/auth/refresh',{headers:{'Authorization':`Bearer ${rt}`}});
-      if(rr.ok){const rd=await rr.json();localStorage.setItem('access_token',rd.access_token);options.headers['Authorization']=`Bearer ${rd.access_token}`;res=await fetch(url,options);}
+      const rr=await fetch('/auth/refresh',{headers:{'Authorization':`Bearer ${rt}`}});
+      if(rr.ok){
+        const contentType = rr.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const rd=await rr.json();
+          localStorage.setItem('access_token',rd.access_token);
+          options.headers['Authorization']=`Bearer ${rd.access_token}`;
+          res=await fetch(url,options);
+        }
+      }
       else{localStorage.clear();window.location.href='login.html';}
     }
     return res;
@@ -236,8 +244,15 @@
   /* LOAD ADMIN INFO */
   async function loadAdmin(){
     try{
-      const res=await authFetch('http://localhost:8000/app/');
-      if(res.ok){const d=await res.json();if(d.role!=='admin'){window.location.href='chat.html';return;}document.getElementById('adminName').textContent=d.first_name;}
+      const res=await authFetch('/app/');
+      if(res.ok){
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const d=await res.json();
+          if(d.role!=='admin'){window.location.href='chat.html';return;}
+          document.getElementById('adminName').textContent=d.first_name;
+        }
+      }
     }catch(e){console.error(e)}
   }
 
@@ -245,10 +260,13 @@
   let allUsers=[];
   async function loadUsers(){
     try{
-      const res=await authFetch('http://localhost:8000/admin/admin-get-all-user');
+      const res=await authFetch('/admin/admin-get-all-user');
       if(!res.ok){showToast('Failed to load users.','error');return;}
-      allUsers=await res.json();
-      renderUsers(allUsers); updateStats(allUsers);
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        allUsers=await res.json();
+        renderUsers(allUsers); updateStats(allUsers);
+      }
     }catch(e){showToast('Could not reach server.','error');}
   }
 
@@ -289,9 +307,15 @@
 
   async function toggleVerify(uid,cur){
     try{
-      const res=await authFetch(`http://localhost:8000/admin/admin-verify-and-unverify-user/${uid}`,{method:'PATCH'});
+      const res=await authFetch(`/admin/admin-verify-and-unverify-user/${uid}`,{method:'PATCH'});
       if(res.ok){showToast(`User ${cur?'unverified':'verified'} successfully.`);loadUsers();}
-      else{const d=await res.json();showToast(d.detail,'error');}
+      else{
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const d=await res.json();
+          showToast(d.detail,'error');
+        }
+      }
     }catch(e){showToast('Error.','error');}
   }
 
@@ -300,9 +324,15 @@
   document.getElementById('confirmDelete').addEventListener('click',async()=>{
     if(!pendingDeleteUid) return; closeModal('deleteOverlay');
     try{
-      const res=await authFetch(`http://localhost:8000/admin/admin-delete-user/${pendingDeleteUid}`,{method:'DELETE'});
+      const res=await authFetch(`/admin/admin-delete-user/${pendingDeleteUid}`,{method:'DELETE'});
       if(res.ok){showToast('User deleted.');loadUsers();}
-      else{const d=await res.json();showToast(d.detail,'error');}
+      else{
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const d=await res.json();
+          showToast(d.detail,'error');
+        }
+      }
     }catch(e){showToast('Error.','error');}
     pendingDeleteUid=null;
   });
@@ -312,9 +342,15 @@
   document.getElementById('confirmRole').addEventListener('click',async()=>{
     if(!pendingRoleUid) return; const nr=document.getElementById('roleSelect').value; closeModal('roleOverlay');
     try{
-      const res=await authFetch(`http://localhost:8000/admin/admin-change-user-role/${pendingRoleUid}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:nr})});
+      const res=await authFetch(`/admin/admin-change-user-role/${pendingRoleUid}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:nr})});
       if(res.ok){showToast(`Role updated to ${nr}.`);loadUsers();}
-      else{const d=await res.json();showToast(d.detail,'error');}
+      else{
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const d=await res.json();
+          showToast(d.detail,'error');
+        }
+      }
     }catch(e){showToast('Error.','error');}
     pendingRoleUid=null;
   });
@@ -323,17 +359,20 @@
   async function loadLogs(){
     const c=document.getElementById('logsContainer'); c.innerHTML='<div class="empty">Loading...</div>';
     try{
-      const res=await authFetch('http://localhost:8000/admin/admin-get-query-logs');
+      const res=await authFetch('/admin/admin-get-query-logs');
       if(!res.ok){c.innerHTML='<div class="empty">Failed to load logs.</div>';return;}
-      const logs=await res.json();
-      document.getElementById('ss2').textContent=logs.length;
-      if(!logs.length){c.innerHTML='<div class="empty">No query logs yet.</div>';return;}
-      c.innerHTML=logs.map(l=>`<div class="log-card"><div class="lc-q">💬 ${l.query}</div><div class="lc-r">${l.response||'No response recorded.'}</div><div class="lc-m">User: ${l.user_id} · ${l.timestamp?new Date(l.timestamp).toLocaleString():'—'}</div></div>`).join('');
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const logs=await res.json();
+        document.getElementById('ss2').textContent=logs.length;
+        if(!logs.length){c.innerHTML='<div class="empty">No query logs yet.</div>';return;}
+        c.innerHTML=logs.map(l=>`<div class="log-card"><div class="lc-q">💬 ${l.query}</div><div class="lc-r">${l.response||'No response recorded.'}</div><div class="lc-m">User: ${l.user_id} · ${l.timestamp?new Date(l.timestamp).toLocaleString():'—'}</div></div>`).join('');
+      }
     }catch(e){c.innerHTML='<div class="empty">Could not reach server.</div>';}
   }
 
   document.getElementById('logoutBtn').addEventListener('click',async()=>{
-    try{await authFetch('http://localhost:8000/auth/logout');}catch(_){}
+    try{await authFetch('/auth/logout');}catch(_){}
     localStorage.clear(); window.location.href='login.html';
   });
 

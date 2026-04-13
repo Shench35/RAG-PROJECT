@@ -224,11 +224,17 @@
     btn.disabled = true; btnText.textContent = 'Creating your account...';
 
     try{
-      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/CreateUser',{
+      const res = await fetch('/auth/CreateUser',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body: JSON.stringify({first_name:firstName,last_name:lastName,username,email,password})
       });
-      const data = await res.json();
+      
+      let data = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      }
+
       if(!res.ok) throw new Error(data.detail||'Registration failed.');
       showToast('Account created! Check your email for the verification code. 🎉');
       setTimeout(() => window.location.href = `verify.html?email=${encodeURIComponent(email)}`, 2000);

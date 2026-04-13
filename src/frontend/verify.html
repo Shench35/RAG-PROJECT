@@ -166,8 +166,14 @@
     btn.disabled=true; btnText.textContent='Verifying...';
 
     try{
-      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,otp})});
-      const data = await res.json();
+      const res = await fetch('/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,otp})});
+      
+      let data = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      }
+
       if(!res.ok){ shakeBoxes(); document.getElementById('errorMsg').textContent=data.detail||'Invalid code.'; btn.disabled=false; btnText.textContent='Verify my account'; return; }
       clearInterval(timerInterval);
       showToast('Account verified! Welcome to Lumi 🎉');
@@ -183,8 +189,14 @@
     if(!email){ document.getElementById('errorMsg').textContent='Please enter your email.'; return; }
     const btn=document.getElementById('resendBtn'); btn.disabled=true; btn.textContent='Sending...';
     try{
-      const res = await fetch('https://lumi-conversation-ai.onrender.com/auth/resend-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-      const data = await res.json();
+      const res = await fetch('/auth/resend-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      
+      let data = {};
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      }
+
       if(!res.ok){ document.getElementById('errorMsg').textContent=data.detail; btn.disabled=false; btn.textContent='Resend code'; return; }
       secondsLeft=600; document.getElementById('timerDisplay').classList.remove('expiring');
       document.getElementById('timerCount').textContent='10:00'; document.getElementById('submitBtn').disabled=false;
