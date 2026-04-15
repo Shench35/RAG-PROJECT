@@ -15,7 +15,9 @@ class RAGPipeLine():
     @property
     def embedding_model(self):
         if self._embedding_model is None:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
+            # Heavy import moved inside to save memory on startup
+            from langchain_huggingface import HuggingFaceEmbeddings
+            print("Loading Embedding Model into RAM...")
             self._embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         return self._embedding_model
 
@@ -23,6 +25,7 @@ class RAGPipeLine():
         import httpx
         from bs4 import BeautifulSoup
         from langchain_core.documents import Document
+        # ... rest of the method logic
         
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         async with httpx.AsyncClient(headers=headers, timeout=15.0) as client:
@@ -77,7 +80,7 @@ class RAGPipeLine():
 
                                                   Answer:"""
                                                   )
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         return prompt, llm
     
     def format_docs(self, docs):

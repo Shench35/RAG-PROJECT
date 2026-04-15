@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     MAIL_FROM:str
     MAIL_PORT:int
     MAIL_SERVER:str
-    MAIL_TO:str
+    MAIL_TO:str = "default@example.com"
     MAIL_STARTTLS:bool = False
     MAIL_SSL_TLS:bool = True
     USE_CREDENTIALS:bool = True
