@@ -11,19 +11,36 @@ class RAGPipeLine():
     def __init__(self):
         self.persist_directory = "./db/chroma"
         self._embedding_model = None
+        self._retriever = None
 
     @property
     def embedding_model(self):
         if self._embedding_model is None:
-            # Switch to Google Embeddings to save RAM on Render
             from langchain_google_genai import GoogleGenerativeAIEmbeddings
             from src.app.services.config import Config
             print("Initializing Google Generative AI Embeddings...")
             self._embedding_model = GoogleGenerativeAIEmbeddings(
                 model="models/embedding-001",
-                google_api_key=Config.GOOGLE_API_KEY
+                google_api_key=Config.GOOGLE_API_KEY,
+                request_options={"timeout": 120}
             )
         return self._embedding_model
+
+    async def get_retriever(self):
+        if self._retriever is None:
+            print("Indexing documents for the first time...")
+            docs = await self.web_doc_inventory()
+            splits = await self.chunking(docs)
+            
+            from langchain_community.vectorstores import Chroma
+            print("Initializing Vector Store (In-Memory)...")
+            vectorstore = Chroma.from_documents(
+                documents=splits,
+                embedding=self.embedding_model
+            )
+            self._retriever = vectorstore.as_retriever()
+            print("Indexing complete and cached.")
+        return self._retriever
 
     async def web_doc_inventory(self):
         import httpx

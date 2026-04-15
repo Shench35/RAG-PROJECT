@@ -80,20 +80,14 @@ async def query(
        # Lazy get the pipeline
        pipeline = get_rag_pipeline()
        
-       docs = await pipeline.web_doc_inventory()
-       print("Done with docs")
-
-       splits = await pipeline.chunking(docs)
-       print("Done with spliting")
-
-       retriever = await pipeline.embedding_docs_and_retrival(splits)
-       print("Done with retriever")
+       # Get the cached retriever (indexes only once)
+       retriever = await pipeline.get_retriever()
 
        prompt, llm = await pipeline.prompt_template()
-       print("Done with prompt and llm")
-
-       answer = await pipeline.rag_chain(docs, retriever, prompt, llm, q)
-       print(answer)
+       
+       # Pass dummy docs since retriever already has them
+       answer = await pipeline.rag_chain([], retriever, prompt, llm, q)
+       print(f"AI Answer: {answer}")
        
        # Store in UserQuery table
        user_query = UserQuery(
