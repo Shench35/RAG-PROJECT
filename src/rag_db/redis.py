@@ -13,6 +13,7 @@ token_blocklist = aioredis.Redis(
     host=Config.REDIS_HOST,
     port=Config.REDIS_PORT,
     password=Config.REDIS_PASSWORD,
+    username=Config.REDIS_USER,
     db=0,
     decode_responses=True,
     socket_connect_timeout=5,

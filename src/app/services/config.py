@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_PASSWORD: str
+    REDIS_USER: str
 
     GOOGLE_API_KEY: str
 
