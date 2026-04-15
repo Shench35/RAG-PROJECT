@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_PASSWORD: str
 
+    GOOGLE_API_KEY: str
+
     ALLOWED_ORIGINS: list[str] = ["*"]
 
 
