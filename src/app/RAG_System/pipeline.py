@@ -15,10 +15,14 @@ class RAGPipeLine():
     @property
     def embedding_model(self):
         if self._embedding_model is None:
-            # Heavy import moved inside to save memory on startup
-            from langchain_huggingface import HuggingFaceEmbeddings
-            print("Loading Embedding Model into RAM...")
-            self._embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            # Switch to Google Embeddings to save RAM on Render
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
+            from src.app.services.config import Config
+            print("Initializing Google Generative AI Embeddings...")
+            self._embedding_model = GoogleGenerativeAIEmbeddings(
+                model="models/embedding-001",
+                google_api_key=Config.GOOGLE_API_KEY
+            )
         return self._embedding_model
 
     async def web_doc_inventory(self):
