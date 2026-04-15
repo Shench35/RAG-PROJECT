@@ -68,7 +68,8 @@ class RAGPipeLine():
     async def prompt_template(self):
         from langchain_google_genai import ChatGoogleGenerativeAI
         from langchain_core.prompts import ChatPromptTemplate
-        
+        from src.app.services.config import Config
+
         prompt = ChatPromptTemplate.from_template("""You are an exciting to call with and well collected and always ready to hear people our agent for Conversation with Human. 
                                                   Use the following pieces of retrieved context to response as humanly as possible. 
                                                   If you don't hae the response, just say that you don't know. 
@@ -80,18 +81,29 @@ class RAGPipeLine():
 
                                                   Answer:"""
                                                   )
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        print("Initializing LLM with Gemini 1.5 Flash...")
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash", 
+            temperature=0,
+            google_api_key=Config.GOOGLE_API_KEY
+        )
         return prompt, llm
-    
+
     def format_docs(self, docs):
         return "\n\n".join(doc.page_content for doc in docs)
-    
+
     async def rag_chain(self, docs: List, retriever:Any, prompt: Any, llm: Any, query:str):
         from langchain_core.runnables import RunnablePassthrough
         from langchain_core.output_parsers import StrOutputParser
-        
+
+        print(f"Executing RAG Chain for query: {query}")
+        # Ensure format_docs is used as a RunnableLambda for the pipeline
+        from langchain_core.runnables import RunnableLambda
+
+        context_chain = retriever | RunnableLambda(self.format_docs)
+
         rag_chain = (
-            {"context": retriever | self.format_docs, "question": RunnablePassthrough()}
+            {"context": context_chain, "question": RunnablePassthrough()}
             | prompt
             | llm
             | StrOutputParser()
