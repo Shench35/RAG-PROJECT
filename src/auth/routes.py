@@ -28,150 +28,157 @@ async def create_user(user_data: CreateUserModel, session: AsyncSession = Depend
     if user_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User already exist")
     
-    new_user = await service.create_account(user_data, session)
+    try:
+        new_user = await service.create_account(user_data, session)
 
-    # Generate OTP and store in Redis
-    otp = await service.generate_otp(email)
+        # Generate OTP and store in Redis
+        otp = await service.generate_otp(email)
 
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body {{
-                font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, sans-serif;
-                background: #050810;
-                color: #c8dff0;
-                margin: 0; padding: 20px;
-            }}
-            .container {{
-                max-width: 500px;
-                margin: 0 auto;
-                background: #0a0f1e;
-                border: 1px solid #1a2a4a;
-                padding: 40px;
-                border-radius: 4px;
-            }}
-            .header {{
-                text-align: center;
-                margin-bottom: 32px;
-                border-bottom: 1px solid #1a2a4a;
-                padding-bottom: 24px;
-            }}
-            .brand {{
-                font-family: 'Orbitron', sans-serif;
-                font-size: 24px;
-                font-weight: 900;
-                letter-spacing: 2px;
-                color: #fff;
-            }}
-            .brand span {{ color: #e8725a; }}
-            .status {{
-                font-family: 'Share Tech Mono', monospace;
-                font-size: 10px;
-                color: #5a7a9a;
-                letter-spacing: 2px;
-                margin-top: 8px;
-            }}
-            h1 {{
-                font-family: 'Orbitron', sans-serif;
-                font-size: 18px;
-                font-weight: 900;
-                color: #fff;
-                margin: 24px 0 16px 0;
-            }}
-            .message {{
-                font-family: 'Share Tech Mono', monospace;
-                font-size: 12px;
-                color: #c8dff0;
-                line-height: 1.8;
-                margin-bottom: 28px;
-            }}
-            .otp-box {{
-                background: #0d1526;
-                border: 2px solid #e8725a;
-                padding: 24px;
-                text-align: center;
-                margin: 32px 0;
-                border-radius: 2px;
-            }}
-            .otp-value {{
-                font-family: 'Orbitron', sans-serif;
-                font-size: 36px;
-                font-weight: 900;
-                letter-spacing: 8px;
-                color: #e8725a;
-                word-break: break-all;
-            }}
-            .timer {{
-                font-family: 'Share Tech Mono', monospace;
-                font-size: 11px;
-                color: #00ff88;
-                text-align: center;
-                margin: 16px 0;
-            }}
-            .footer {{
-                border-top: 1px solid #1a2a4a;
-                padding-top: 20px;
-                margin-top: 32px;
-                font-family: 'Share Tech Mono', monospace;
-                font-size: 10px;
-                color: #5a7a9a;
-                text-align: center;
-                line-height: 1.6;
-            }}
-            .warning {{
-                color: #ff4500;
-                font-weight: bold;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="brand">LUMI<span>.</span></div>
-                <div class="status">AI COMPANION ACCESS</div>
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, sans-serif;
+                    background: #050810;
+                    color: #c8dff0;
+                    margin: 0; padding: 20px;
+                }}
+                .container {{
+                    max-width: 500px;
+                    margin: 0 auto;
+                    background: #0a0f1e;
+                    border: 1px solid #1a2a4a;
+                    padding: 40px;
+                    border-radius: 4px;
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 32px;
+                    border-bottom: 1px solid #1a2a4a;
+                    padding-bottom: 24px;
+                }}
+                .brand {{
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 24px;
+                    font-weight: 900;
+                    letter-spacing: 2px;
+                    color: #fff;
+                }}
+                .brand span {{ color: #e8725a; }}
+                .status {{
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 10px;
+                    color: #5a7a9a;
+                    letter-spacing: 2px;
+                    margin-top: 8px;
+                }}
+                h1 {{
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 18px;
+                    font-weight: 900;
+                    color: #fff;
+                    margin: 24px 0 16px 0;
+                }}
+                .message {{
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 12px;
+                    color: #c8dff0;
+                    line-height: 1.8;
+                    margin-bottom: 28px;
+                }}
+                .otp-box {{
+                    background: #0d1526;
+                    border: 2px solid #e8725a;
+                    padding: 24px;
+                    text-align: center;
+                    margin: 32px 0;
+                    border-radius: 2px;
+                }}
+                .otp-value {{
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 36px;
+                    font-weight: 900;
+                    letter-spacing: 8px;
+                    color: #e8725a;
+                    word-break: break-all;
+                }}
+                .timer {{
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 11px;
+                    color: #00ff88;
+                    text-align: center;
+                    margin: 16px 0;
+                }}
+                .footer {{
+                    border-top: 1px solid #1a2a4a;
+                    padding-top: 20px;
+                    margin-top: 32px;
+                    font-family: 'Share Tech Mono', monospace;
+                    font-size: 10px;
+                    color: #5a7a9a;
+                    text-align: center;
+                    line-height: 1.6;
+                }}
+                .warning {{
+                    color: #ff4500;
+                    font-weight: bold;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="brand">LUMI<span>.</span></div>
+                    <div class="status">AI COMPANION ACCESS</div>
+                </div>
+                
+                <h1>Welcome, {user_data.first_name}!</h1>
+                
+                <div class="message">
+                    Your LUMI account has been created successfully. Your access code is below:
+                </div>
+                
+                <div class="otp-box">
+                    <div class="otp-value">{otp}</div>
+                </div>
+                
+                <div class="message">
+                    Enter this code to verify your account and gain full access to the LUMI platform.
+                </div>
+                
+                <div class="timer">
+                    ⏱️ This code expires in <strong>10 minutes</strong>
+                </div>
+                
+                <div class="footer">
+                    <p class="warning">⚠️ Security Notice:</p>
+                    <p>Do not share this code with anyone. LUMI team members will never ask for your verification code.</p>
+                    <p>If you did not create this account, please ignore this email.</p>
+                </div>
             </div>
-            
-            <h1>Welcome, {user_data.first_name}!</h1>
-            
-            <div class="message">
-                Your LUMI account has been created successfully. Your access code is below:
-            </div>
-            
-            <div class="otp-box">
-                <div class="otp-value">{otp}</div>
-            </div>
-            
-            <div class="message">
-                Enter this code to verify your account and gain full access to the LUMI platform.
-            </div>
-            
-            <div class="timer">
-                ⏱️ This code expires in <strong>10 minutes</strong>
-            </div>
-            
-            <div class="footer">
-                <p class="warning">⚠️ Security Notice:</p>
-                <p>Do not share this code with anyone. LUMI team members will never ask for your verification code.</p>
-                <p>If you did not create this account, please ignore this email.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+        </body>
+        </html>
+        """
 
-    print(user_data.email)
-    message = create_message(
-        recipients=[user_data.email],
-        subject="Verify your LUMI account",
-        body=html
-    )
-    await mail.send_message(message)
+        message = create_message(
+            recipients=[user_data.email],
+            subject="Verify your LUMI account",
+            body=html
+        )
+        await mail.send_message(message)
 
-    return {"message": "Account created. Check your email to verify."}
+        return {"message": "Account created. Check your email to verify."}
+    except Exception as e:
+        import logging
+        logging.error(f"Error during user creation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred: {str(e)}"
+        )
 
 
 @auth_router.post("/verify-otp")

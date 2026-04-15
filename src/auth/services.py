@@ -31,8 +31,11 @@ class UserService:
     async def create_account(self, user_data: CreateUserModel, session: AsyncSession):
         user_data_dict = user_data.model_dump()
 
+        # Remove 'password' from dict before creating User instance as User model doesn't have it
+        password = user_data_dict.pop("password")
+        
         new_user = User(**user_data_dict)
-        new_user.password_hash = hash_password(user_data_dict["password"])
+        new_user.password_hash = hash_password(password)
         new_user.role = "user"
         new_user.is_verified = False  # Set as verified after OTP verification
 

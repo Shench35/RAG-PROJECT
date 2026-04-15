@@ -16,9 +16,10 @@ token_blocklist = aioredis.Redis(
     username=Config.REDIS_USER,
     db=0,
     decode_responses=True,
-    socket_connect_timeout=5,
-    socket_timeout=5,
-    retry_on_timeout=True
+    socket_connect_timeout=10,
+    socket_timeout=10,
+    retry_on_timeout=True,
+    health_check_interval=30
 )
 
 async def add_jti_to_blocklist(jti: str) -> None:

@@ -80,7 +80,7 @@ class RAGPipeLine():
 
                                                   Answer:"""
                                                   )
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
         return prompt, llm
     
     def format_docs(self, docs):
