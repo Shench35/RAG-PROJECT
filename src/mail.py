@@ -6,13 +6,13 @@ from typing import List
 BASE_DIR = Path(__file__).resolve().parent
 
 mail_config = ConnectionConfig(
-    MAIL_USERNAME =Config.MAIL_USERNAME,
+    MAIL_USERNAME = Config.MAIL_USERNAME,
     MAIL_PASSWORD = Config.MAIL_PASSWORD,
     MAIL_FROM = Config.MAIL_FROM,
     MAIL_PORT = Config.MAIL_PORT,
     MAIL_SERVER = Config.MAIL_SERVER,
-    MAIL_STARTTLS = Config.MAIL_STARTTLS,
-    MAIL_SSL_TLS = Config.MAIL_SSL_TLS,
+    MAIL_STARTTLS = False if Config.MAIL_PORT == 465 else Config.MAIL_STARTTLS,
+    MAIL_SSL_TLS = True if Config.MAIL_PORT == 465 else Config.MAIL_SSL_TLS,
     USE_CREDENTIALS = True,
     VALIDATE_CERTS = True,
     TEMPLATE_FOLDER= Path(BASE_DIR, "template")
